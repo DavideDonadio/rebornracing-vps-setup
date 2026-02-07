@@ -1,37 +1,38 @@
--- checksum_debug.lua
--- Prints debug info to the in-game chat window
-
+-- checksum.lua
+-- We define a variable to track if we've run the check
 local hasChecked = false
-local timePassed = 0
 
 function script.update(dt)
-    -- Wait 3 seconds after loading to ensure chat is visible
-    timePassed = timePassed + dt
+    -- This function runs every single frame (60+ times a second)
     
-    if timePassed > 3 and not hasChecked then
+    if not hasChecked then
         hasChecked = true
         
-        ac.sendChatMessage("--- [DEBUG] SCRIPT STARTED ---")
+        -- Run your check logic HERE
+        ac.log("--- STARTING CHECK ---")
         
-        -- 1. Identify the Car
-        local carModel = ac.getCarName(0)
-        ac.sendChatMessage("Detected Car: " .. tostring(carModel))
+        -- Use focusedCar so it checks YOU, not just Slot 0
+        local carIndex = ac.getSim().focusedCar 
+        local carModel = ac.getCarName(carIndex)
         
-        -- 2. Check for the File
-        local filePath = "content/cars/" .. carModel .. "/data.acd"
-        local file = io.open(filePath, "rb")
-        
-        if file then
-            -- Get file size to prove we read it
-            local size = file:seek("end")
-            file:close()
-            ac.sendChatMessage("✅ SUCCESS: data.acd found!")
-            ac.sendChatMessage("📂 File Size: " .. size .. " bytes")
+        ac.log("Checking Car: " .. tostring(carModel))
+
+        if carModel == "rss_formula_hybrid_2025_alpine" then
+            local filePath = "content/cars/" .. carModel .. "/data.acd"
+            local file = io.open(filePath, "rb")
+            
+            if file then
+                -- Do the read test
+                local size = file:seek("end")
+                file:close()
+                ac.log("✅ File Found. Size: " .. size)
+                ac.sendChatMessage("System: Integrity Check Passed.")
+            else
+                ac.log("❌ File Missing/Locked!")
+                ac.sendChatMessage("System: INTEGRITY FAIL - data.acd missing")
+            end
         else
-            ac.sendChatMessage("❌ FAILURE: data.acd NOT found or Locked.")
-            ac.sendChatMessage("⚠️ Path checked: " .. filePath)
+            ac.log("Skipping check (Different Car)")
         end
-        
-        ac.sendChatMessage("--- [DEBUG] SCRIPT FINISHED ---")
     end
 end
