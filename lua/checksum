@@ -1,38 +1,43 @@
--- checksum.lua
--- We define a variable to track if we've run the check
-local hasChecked = false
+-- checksum
+-- ALIVE CHECK: Prints to chat every 5 seconds
+
+local timer = 0
+local checkHasRun = false
 
 function script.update(dt)
-    -- This function runs every single frame (60+ times a second)
-    
-    if not hasChecked then
-        hasChecked = true
-        
-        -- Run your check logic HERE
-        ac.log("--- STARTING CHECK ---")
-        
-        -- Use focusedCar so it checks YOU, not just Slot 0
-        local carIndex = ac.getSim().focusedCar 
-        local carModel = ac.getCarName(carIndex)
-        
-        ac.log("Checking Car: " .. tostring(carModel))
+    -- Add the time passed since the last frame (dt = delta time)
+    timer = timer + dt
 
-        if carModel == "rss_formula_hybrid_2025_alpine" then
-            local filePath = "content/cars/" .. carModel .. "/data.acd"
-            local file = io.open(filePath, "rb")
+    -- EVERY 5 SECONDS:
+    if timer > 5 then
+        timer = 0 -- Reset timer
+        
+        -- 1. Send visible chat message
+        ac.sendChatMessage("💓 SCRIPT IS ALIVE - Checking Integrity...")
+        
+        -- 2. Log to console (F9 key or /log)
+        ac.log("Heartbeat: Script running at " .. os.date())
+        
+        -- 3. Run the file check (Only runs once per session to save performance)
+        if not checkHasRun then
+            local carModel = ac.getCarName(0)
             
-            if file then
-                -- Do the read test
-                local size = file:seek("end")
-                file:close()
-                ac.log("✅ File Found. Size: " .. size)
-                ac.sendChatMessage("System: Integrity Check Passed.")
+            if carModel == "rss_formula_hybrid_2025_alpine" then
+                local filePath = "content/cars/" .. carModel .. "/data.acd"
+                local f = io.open(filePath, "rb")
+                
+                if f then
+                    local size = f:seek("end")
+                    f:close()
+                    ac.sendChatMessage("✅ INTEGRITY PASSED: data.acd found (".. size .." bytes)")
+                else
+                    ac.sendChatMessage("❌ INTEGRITY FAILED: data.acd MISSING")
+                end
             else
-                ac.log("❌ File Missing/Locked!")
-                ac.sendChatMessage("System: INTEGRITY FAIL - data.acd missing")
+                ac.sendChatMessage("ℹ️ Info: Not driving the Alpine (Skipping check)")
             end
-        else
-            ac.log("Skipping check (Different Car)")
+            
+            checkHasRun = true -- Stop checking the file, but keep printing the heartbeat
         end
     end
 end
